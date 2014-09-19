@@ -66,6 +66,7 @@ class SGDSolver : public Solver<Dtype> {
       : Solver<Dtype>(param_file) {}
 
   const vector<shared_ptr<Blob<Dtype> > >& history() { return history_; }
+  const vector<shared_ptr<Blob<Dtype> > >& update_history() { return update_history_; }
 
  protected:
   virtual void PreSolve();
@@ -77,7 +78,7 @@ class SGDSolver : public Solver<Dtype> {
   // update maintains update related data and is not needed in snapshots.
   // temp maintains other information that might be needed in computation
   //   of gradients/updates and is not needed in snapshots
-  vector<shared_ptr<Blob<Dtype> > > history_, update_, temp_;
+  vector<shared_ptr<Blob<Dtype> > > history_, update_, temp_, update_history_;
 
   DISABLE_COPY_AND_ASSIGN(SGDSolver);
 };
@@ -123,14 +124,21 @@ class AdaDeltaSolver : public SGDSolver<Dtype> {
       : SGDSolver<Dtype>(param_file) { constructor_sanity_check(); }
 
  protected:
+  virtual void PreSolve();
   virtual void ComputeUpdateValue();
+  virtual void SnapshotSolverState(SolverState * state);
+  virtual void RestoreSolverState(const SolverState& state);
   void constructor_sanity_check() {
-    // temporarily disabled until full Adadelta implemented
-    // CHECK_EQ(0, this->param_.base_lr())
-    //    << "Learning rate cannot be used with AdaDelta.";
-    // CHECK_EQ("", this->param_.lr_policy())
-    //    << "Learning rate policy cannot be applied to AdaDelta.";
+    CHECK_EQ(0, this->param_.base_lr())
+        << "Learning rate cannot be used with AdaDelta.";
+    CHECK_EQ("", this->param_.lr_policy())
+        << "Learning rate policy cannot be applied to AdaDelta.";
   }
+  // update_history_ maintains a weighted average of squared updates,
+  // alongside history_, which in this context maintains a weighted
+  // average of
+  // vector<shared_ptr<Blob<Dtype> > > update_history_;
+
 
   DISABLE_COPY_AND_ASSIGN(AdaDeltaSolver);
 };
